@@ -10,7 +10,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 )
@@ -21,14 +20,11 @@ func producer(stream Stream, c chan *Tweet, wg *sync.WaitGroup) {
 		defer wg.Done()
 		for {
 			tweet, err := stream.Next()
-			fmt.Println(tweet)
-			if err == nil {
-				c <- tweet
-			} else {
-				if err != ErrEOF {
-					log.Fatal(err)
-				}
+			if err != nil {
 				close(c)
+				return
+			} else {
+				c <- tweet
 			}
 		}
 	}()
@@ -51,14 +47,14 @@ func consumer(c chan *Tweet, wg *sync.WaitGroup) {
 func main() {
 	start := time.Now()
 	stream := GetMockStream()
-	var c = make(chan *Tweet)
+	c := make(chan *Tweet)
 	var wg sync.WaitGroup
 
 	// Producer
-	go producer(stream, c, &wg)
+	producer(stream, c, &wg)
 
 	// Consumer
-	go consumer(c, &wg)
+	consumer(c, &wg)
 
 	wg.Wait()
 	fmt.Printf("Process took %s\n", time.Since(start))
